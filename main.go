@@ -1,7 +1,8 @@
 package main
 
-import "fmt"
+import "github.com/cyniczhi/z-redis/server"
 
 func main()  {
-	fmt.Println("hello z-redis!")
+	server := new(server.Server)
+	server.Start()
 }

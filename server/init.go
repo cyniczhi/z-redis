@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"log"
@@ -8,7 +8,7 @@ import (
 	"syscall"
 )
 
-func main() {
+func (*Server) Start() {
 
 	// handle os signals
 	c := make(chan os.Signal)
@@ -47,6 +47,8 @@ func handle(conn net.Conn) {
 // TODO: parse query from client
 func parseQuery(conn net.Conn) (query string, err error) {
 	buff := make([]byte, 512)
+
+	// FIXME: add handler for EOF
 	n, err := conn.Read(buff)
 	if err != nil {
 		log.Println("parse query: conn.Read err!=nil", err, "---len---", n, conn)
@@ -79,6 +81,7 @@ func sigHandler(c chan os.Signal) {
 	}
 }
 
+// TODO: serialize mem to disk
 func exitHandler() {
 	log.Println("exiting z-redis...")
 	log.Println("bye ")
