@@ -12,15 +12,11 @@ type Server struct {
 	DbNum int
 	Start            int64
 	Port int32
-	//RdbFilename      string
-	//AofFilename      string
 	NextClientID int32
-	//SystemMemorySize int32
 	Clients  int32
 	Pid      int
 	Commands map[string]*Command
 	Dirty    int64
-	//AofBuf           []string
 }
 
 // record and maintain a connection

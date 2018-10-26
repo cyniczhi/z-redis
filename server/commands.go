@@ -2,7 +2,10 @@
 
 package server
 
-import "log"
+import (
+	"log"
+	"fmt"
+)
 
 type Command struct {
 	Name string
@@ -48,5 +51,5 @@ func DelCommand(c *Client, s *Server) {
 	db := c.Db
 	objKey := c.Argv[1]
 	delete(db.Dict, objKey.Ptr.(string))
-	//c.addReply(CreateObject(ObjectTypeString, "nil"))
+	c.addReply(CreateObject(ObjectTypeString, fmt.Sprintf("Key %s deleted", objKey.Ptr.(string))))
 }

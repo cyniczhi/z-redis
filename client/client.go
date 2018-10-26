@@ -29,7 +29,7 @@ func main() {
 
 	for {
 		// send query
-		fmt.Print(localAddr + "> ")
+		fmt.Print(localAddr + "[client]> ")
 		query, _ := reader.ReadString('\n')
 
 		// TODO: parse query to satisfy redis protocol
@@ -41,9 +41,9 @@ func main() {
 		n, err := conn.Read(resp)
 		checkError(err)
 		if n == 0 {
-			fmt.Println(serverAddr + "> ", "nil")
+			fmt.Println(serverAddr + "[server]> ", "nil")
 		} else {
-			fmt.Println(serverAddr + "> ", string(resp))
+			fmt.Println(serverAddr + "[server]> ", string(resp))
 		}
 	}
 
