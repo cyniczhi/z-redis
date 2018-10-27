@@ -33,6 +33,7 @@ import (
 
 const (
 	dbVersion byte = 0
+	defaultFilePath = "test.zdb"
 )
 
 type zDbFile struct {
@@ -52,19 +53,56 @@ type zKvPair struct {
 	val     []byte // val: string by default
 }
 
-func (z *zDbFile) Persistence() {
-
+// return the buffer of one database
+func (db *zDatabase)buff() []byte {
+	ret := make([]byte, 0)
+	for _, p := range db.content {
+		ret = append(ret, p.valType)
+		ret = append(ret, p.key...)
+		ret = append(ret, p.val...)
+	}
+	return ret
 }
 
-func (db *zDatabase)Add(key string, val string) {
+// persistent a zdb file
+func (z *zDbFile) Persistence() {
+	result := make([]byte, 0)
+	result = append(result, z.startFlag[:]...)
+	result = append(result, z.dbVersion)
+	for _, db := range z.databases {
+		result = append(result, 1)
+		result = append(result, db.id)
+		result = append(result, db.buff()...)
+	}
 
+	err := ioutil.WriteFile(defaultFilePath, append(result, dbVersion), 0644)
+	check(err)
+}
+
+// Add a key_value pair to a zDatabase
+func (db *zDatabase)Add(key string, val string) {
+	pair := new(zKvPair)
+	pair.valType = 0
+	pair.key = []byte(key)
+	pair.val = []byte(val)
+	db.content = append(db.content, pair)
 }
 
 func Test() {
-	t := []byte{'1', '2', 3, 4, 5}
-	err := ioutil.WriteFile("test.zdb", append(t, dbVersion), 0644)
-	check(err)
+	db := new(zDatabase)
+	db.id = 0
+	db.Add("aaa", "aaa")
+	db.Add("bbb", "aaa")
+	db.Add("ccc", "aaa")
+	db.Add("ddd", "aaa")
+	db.Add("eee", "aaa")
 
+	zdb := new(zDbFile)
+	zdb.startFlag = [6]byte{'Z', 'R', 'E', 'D', 'I', 'S'}
+	zdb.dbVersion = 2
+	zdb.databases = make([]*zDatabase, 0)
+	zdb.databases = append(zdb.databases, db)
+	zdb.Persistence()
 }
 
 func check(err error) {
