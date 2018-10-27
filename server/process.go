@@ -25,12 +25,13 @@ func CreateServer() (server *Server) {
 		server.Db = dbs
 		server.DbNum = len(dbs)
 	} else {
-		server.DbNum = 8
+		server.DbNum = core.DefaultDbNumber
+		server.Db = make([]*core.Database, core.DefaultDbNumber)
 		for i := 0; i < server.DbNum; i++ {
 			server.Db[i] = new(core.Database)
 			server.Db[i].Dict = make(map[string]*core.ZObject, 100)
+			server.Db[i].ID = int32(i)
 		}
-		server.Db = make([]*core.Database, server.DbNum)
 	}
 
 	// init LRU

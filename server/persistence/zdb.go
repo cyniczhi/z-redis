@@ -61,6 +61,7 @@ type zKvPair struct {
 func (db *zDatabase) buff() []byte {
 	ret := make([]byte, 0)
 	ret = append(ret, dbFlag[:]...)
+	ret = append(ret, db.id)
 	for _, p := range db.content {
 		ret = append(ret, p.valType)
 		ret = append(ret, p.key...)
@@ -91,8 +92,7 @@ func Persistence(databases []*core.Database) {
 	for _, db := range databases {
 		zdb.AddDatabase(int(db.ID), db.Dict)
 	}
-	for _, db := range zdb.databases{
-		result = append(result, db.id)
+	for _, db := range zdb.databases {
 		result = append(result, db.buff()...)
 	}
 
@@ -100,7 +100,7 @@ func Persistence(databases []*core.Database) {
 	check(err)
 }
 
-func LoadDatabases() (ret []*core.Database, ok bool){
+func LoadDatabases() (ret []*core.Database, ok bool) {
 	if fileObj, err := os.Open(core.DefaultZdbFilePath); err == nil {
 		defer fileObj.Close()
 
@@ -120,10 +120,14 @@ func LoadDatabases() (ret []*core.Database, ok bool){
 
 		// read databases into content
 		content := make([]byte, 0)
-		buf = make([]byte, 1024)
-		for {
+		buf = make([]byte, core.BuffSize)
+		for idx := 0; ; idx++ {
 			if n, err := reader.Read(buf); err == nil {
-				content = append(content, buf...)
+				content = append(content, buf[0:n]...)
+				if n < core.BuffSize {
+					content = content[:n+idx*core.BuffSize]
+					break
+				}
 			} else if err == io.EOF {
 				content = append(content, buf[0:n]...)
 				break
@@ -135,6 +139,10 @@ func LoadDatabases() (ret []*core.Database, ok bool){
 
 		// parse content into databases
 		ret := make([]*core.Database, 0)
+
+		// read zdb version
+		log.Printf("Version: %d", content[0])
+		content = content[1:]
 
 		// TODO: more strict boundary condition check, not enough now
 		for ; len(content) > 0; {
@@ -148,26 +156,39 @@ func LoadDatabases() (ret []*core.Database, ok bool){
 			lru.Dict = make(map[string]*core.Node, 100)
 			dbTmp.ExpireDict = lru
 
+			for i, c := range content[0:8] {
+				if c != dbFlag[i] {
+					log.Printf("Database file <%s> illegal, load err: %s", core.DefaultZdbFilePath, err)
+					panic(fmt.Sprintf("Database file <%s> illegal", err))
+				}
+			}
+
+			dbTmp.ID = int32(content[8])
+			content = content[9:]
+			newDbFlag := false
 			// parse key_value_pairs into a database
 			for {
-				// check db id
-				for i, c := range content[0:8] {
-					if c != dbFlag[i] {
-						log.Printf("Database file <%s> illegal", err)
-						panic(fmt.Sprintf("Database file <%s> illegal", err))
-					}
-				}
-				dbTmp.ID = int32(content[8])
-				content = content[9:]
-
-
-				vType := content[0]
-				content = content[1:]
-
 				if len(content) < 8 {
 					// no key_val_pairs
 					return ret, true
 				}
+				for i, c := range content[0:8] {
+					fmt.Println(c)
+					if c != dbFlag[i] {
+						break
+					} else if i == 7 {
+						// dbFlag read
+						// start a new database
+						newDbFlag = true
+					}
+				}
+				if newDbFlag {
+					break
+				}
+
+				vType := content[0]
+				content = content[1:]
+
 				if vType != core.ObjectTypeString {
 					panic(fmt.Sprintf("Value type <%s> not supported yet", vType))
 				}
@@ -183,12 +204,15 @@ func LoadDatabases() (ret []*core.Database, ok bool){
 					// all contents read completely
 					break
 				}
+
 			}
 
 			// append database
 			ret = append(ret, dbTmp)
 		}
 		return ret, true
+	} else {
+		log.Printf("Error occured when loading zdb file: %s", err)
 	}
 	return nil, false
 
