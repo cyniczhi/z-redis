@@ -7,8 +7,8 @@ This file defines the structure of a zdb file
 
 **************************** ZDB file ******************************
 | ZREDIS | db_version | databases | EOF |
-ZREDIS: 	'Z', 'R', 'E', 'D', 'I', 'S'  5byte
-db_version: 0  							  1byte
+ZREDIS: 	'Z', 'R', 'E', 'D', 'I', 'S'  5 byte
+db_version: 0  							  1 byte
 
 **************************** databases ******************************
 | database0 | database3 | ... |
@@ -20,20 +20,21 @@ db_number: number  						  1 byte
 
 **************************** key value pair ******************************
 | TYPE | KEY | VALUE |
-TYPE: const [0, 1, ..., n]: 			  1byte
-KEY: string								  []byte
-VALUE: string							  []byte
+TYPE: const [0, 1, ..., n]: 			  1 byte
+KEY: | LEN | string | 					  int32, []byte
+VALUE: | LEN | string | 				  int32, []byte
 
  */
 package persistence
 
 import (
 	"io/ioutil"
+	"github.com/cyniczhi/z-redis/server/core"
 )
 
 const (
-	dbVersion byte = 0
-	defaultFilePath = "test.zdb"
+	dbVersion       byte = 0
+	defaultFilePath      = "test.zdb"
 )
 
 type zDbFile struct {
@@ -54,7 +55,7 @@ type zKvPair struct {
 }
 
 // return the buffer of one database
-func (db *zDatabase)buff() []byte {
+func (db *zDatabase) buff() []byte {
 	ret := make([]byte, 0)
 	for _, p := range db.content {
 		ret = append(ret, p.valType)
@@ -62,6 +63,16 @@ func (db *zDatabase)buff() []byte {
 		ret = append(ret, p.val...)
 	}
 	return ret
+}
+
+// Add a database to zdb file from a hash map dict
+func (z *zDbFile) AddDatabase(dbNum int, hMap map[string]*core.ZObject) {
+	db := new(zDatabase)
+	db.id = byte(dbNum)
+	for k, v := range hMap {
+		db.add(k, v.Ptr.(string))
+	}
+	z.databases = append(z.databases, db)
 }
 
 // persistent a zdb file
@@ -79,8 +90,8 @@ func (z *zDbFile) Persistence() {
 	check(err)
 }
 
-// Add a key_value pair to a zDatabase
-func (db *zDatabase)Add(key string, val string) {
+// add a key_value pair to a zDatabase
+func (db *zDatabase) add(key string, val string) {
 	pair := new(zKvPair)
 	pair.valType = 0
 	pair.key = []byte(key)
@@ -89,19 +100,18 @@ func (db *zDatabase)Add(key string, val string) {
 }
 
 func Test() {
-	db := new(zDatabase)
-	db.id = 0
-	db.Add("aaa", "aaa")
-	db.Add("bbb", "aaa")
-	db.Add("ccc", "aaa")
-	db.Add("ddd", "aaa")
-	db.Add("eee", "aaa")
+	db := make(map[string]*core.ZObject)
+	db["aaaa"] = core.CreateObject(core.ObjectTypeString, "aaaa")
+	db["bbbb"] = core.CreateObject(core.ObjectTypeString, "aaaa")
+	db["cccc"] = core.CreateObject(core.ObjectTypeString, "aaaa")
+	db["dddd"] = core.CreateObject(core.ObjectTypeString, "aaaa")
+	db["eeee"] = core.CreateObject(core.ObjectTypeString, "aaaa")
 
 	zdb := new(zDbFile)
 	zdb.startFlag = [6]byte{'Z', 'R', 'E', 'D', 'I', 'S'}
 	zdb.dbVersion = 2
 	zdb.databases = make([]*zDatabase, 0)
-	zdb.databases = append(zdb.databases, db)
+	zdb.AddDatabase(1, db)
 	zdb.Persistence()
 }
 
