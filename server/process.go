@@ -10,8 +10,12 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"github.com/cyniczhi/z-redis/server/baseds"
 )
 
+const (
+	maxCachedSize = 3
+)
 func CreateServer() (server *Server) {
 	server = new(Server)
 
@@ -24,6 +28,14 @@ func CreateServer() (server *Server) {
 	for i := 0; i < server.DbNum; i++ {
 		server.Db[i] = new(Database)
 		server.Db[i].Dict = make(map[string]*ZObject, 100)
+
+		lru := new(LRUDict)
+		lru.head = nil
+		lru.tail = nil
+		lru.max = maxCachedSize
+		lru.Dict = make(map[string]*baseds.Node, 100)
+
+		server.Db[i].ExpireDict = lru
 	}
 	//log.Println("init db begin-->", server.Db)
 
@@ -32,12 +44,12 @@ func CreateServer() (server *Server) {
 	// add commands
 	getCommand := &Command{Name: "get", Proc: GetCommand}
 	setCommand := &Command{Name: "set", Proc: SetCommand}
-	delCommand := &Command{Name: "del", Proc: DelCommand}
+	delCommand := &Command{Name: "Del", Proc: DelCommand}
 
 	server.Commands = map[string]*Command{
 		"get": getCommand,
 		"set": setCommand,
-		"del": delCommand,
+		"Del": delCommand,
 	}
 	return server
 }

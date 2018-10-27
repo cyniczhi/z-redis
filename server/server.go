@@ -7,16 +7,16 @@ import (
 )
 
 type Server struct {
-	Addr  string
-	Db    []*Database
-	DbNum int
-	Start            int64
-	Port int32
+	Addr         string
+	Db           []*Database
+	DbNum        int
+	Start        int64
+	Port         int32
 	NextClientID int32
-	Clients  int32
-	Pid      int
-	Commands map[string]*Command
-	Dirty    int64
+	Clients      int32
+	Pid          int
+	Commands     map[string]*Command
+	Dirty        int64
 }
 
 // record and maintain a connection
@@ -40,10 +40,10 @@ func (s *Server) ProcessCommand(c *Client) {
 		c.addReply(CreateObject(ObjectTypeString, fmt.Sprintf("(error) ERR unknown command '%s'", name)))
 	} else {
 		c.Cmd = cmd
-		call(c, s)
+		call(c)
 	}
 }
 
-func call(c *Client, s *Server) {
-	c.Cmd.Proc(c, s)
+func call(c *Client) {
+	c.Cmd.Proc(c)
 }

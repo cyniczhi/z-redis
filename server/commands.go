@@ -3,7 +3,6 @@
 package server
 
 import (
-	"log"
 	"fmt"
 )
 
@@ -12,9 +11,9 @@ type Command struct {
 	Proc cmdFunc
 }
 
-type cmdFunc func(c *Client, s *Server)
+type cmdFunc func(c *Client)
 
-func SetCommand(c *Client, s *Server) {
+func SetCommand(c *Client) {
 	objKey := c.Argv[1]
 	objVal := c.Argv[2]
 	if c.Argc != 3 {
@@ -22,34 +21,31 @@ func SetCommand(c *Client, s *Server) {
 		return
 	}
 	if stringKey, ok1 := objKey.Ptr.(string); ok1 {
-		if stringValue, ok2 := objVal.Ptr.(string); ok2 {
-			c.Db.Dict[stringKey] = CreateObject(ObjectTypeString, stringValue)
-			c.addReply(CreateObject(ObjectTypeString, "OK"))
-			return
+		if o, ok2 := c.Db.set(stringKey, objVal); ok2 && o != nil {
+			c.addReply(o)
 		} else {
 			c.addReply(CreateObject(ObjectTypeString, "(error) ERR wrong <value> of arguments for 'set' command"))
-			return
 		}
 	} else {
 		c.addReply(CreateObject(ObjectTypeString, "(error) ERR wrong <key> of arguments for 'set' command"))
-		return
 	}
 }
 
-func GetCommand(c *Client, s *Server) {
+func GetCommand(c *Client) {
 	db := c.Db
 	objKey := c.Argv[1]
-	log.Println(objKey.Ptr.(string))
-	if o, ok := db.Dict[objKey.Ptr.(string)]; ok && (o != nil) {
-		c.addReply(o)
-	} else {
+	if o, ok := db.get(objKey.Ptr.(string)); ok != nil {
 		c.addReply(CreateObject(ObjectTypeString, "nil"))
+	} else {
+		c.addReply(o)
 	}
 }
 
-func DelCommand(c *Client, s *Server) {
-	db := c.Db
-	objKey := c.Argv[1]
-	delete(db.Dict, objKey.Ptr.(string))
-	c.addReply(CreateObject(ObjectTypeString, fmt.Sprintf("Key %s deleted", objKey.Ptr.(string))))
+func DelCommand(c *Client) {
+	if key, ok1 := c.Argv[1].Ptr.(string); ok1 {
+		c.Db.del(key)
+		c.addReply(CreateObject(ObjectTypeString, fmt.Sprintf("Key %s deleted", key)))
+	} else {
+		c.addReply(CreateObject(ObjectTypeString, fmt.Sprintf("(error) ERR Del %s error", key)))
+	}
 }
