@@ -16,7 +16,28 @@ https://gist.github.com/tevino/f526b18117d83a0fb7b4d1857b14051a
 ### redis标准协议
 先作一个简单的了解，对标准协议的支持后面实现。
 ### LRU过期
-数组+链表？
+对server新增expire字典，key和dict里面的key一一对应，value是一个链表的结点。
+可以为不同的过期策略实现不同的expire字典，这里只考虑对LRU的实现。
+
+#### expire字典:
+插入：新增key的时候，加入到链表尾部。检查是否超过最大链表长度，如果超过就删除表头。
+更新：每当key被使用（set/get），把key对应的node移动到链表尾部。
+删除：删除key的时候，把key对应的node删除，再删除expire里面的key。
+- MAX_LEN: 最多保存多少key
+- *l ：链表头
+- len：链表长度
+- insert(key)
+- update(key)
+- del(key)
+
+链表:
+双向无环链表，包含头指针和尾指针。
+链表结点：
+- *prev
+- *next
+- *tail
+- *head
+- expire_time： 保留字段，考虑之后对过期时间的支持。
 ### 持久化
 初步了解了Redis的持久化策略，本项目打算参考RDB持久化实现一个类似的ZDB持久化：将键值对按照持久化策略保存到ZDB文件里面。这里不对SAVE等主动保存指令提供支持，仅支持默认情况下的自动保存；不支持手动加载的指令及操作，只支持初始化服务器时加载ZDB文件。
 ## Implementation
