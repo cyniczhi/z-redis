@@ -34,14 +34,14 @@ func CreateServer() (server *Server) {
 		}
 	}
 
-	// init LRU
+	//init LRU
 	for i := 0; i < server.DbNum; i++ {
 		lru := new(core.LRUDict)
 		lru.Head = nil
 		lru.Tail = nil
 		lru.Max = core.MaxCachedSize
 		lru.Dict = make(map[string]*core.Node, 100)
-		server.Db[i].ExpireDict = lru
+		//server.Db[i].ExpireDict = lru
 	}
 
 	server.Start = time.Now().UnixNano() / 1000000
@@ -82,7 +82,6 @@ func (s *Server) Run() {
 		go c.Run(s)
 	}
 }
-
 
 func sigHandler(c chan os.Signal, server *Server) {
 	for s := range c {

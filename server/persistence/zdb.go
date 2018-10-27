@@ -145,7 +145,7 @@ func LoadDatabases() (ret []*core.Database, ok bool) {
 		content = content[1:]
 
 		// TODO: more strict boundary condition check, not enough now
-		for ; len(content) > 0; {
+		for {
 			// init a blank database
 			dbTmp := new(core.Database)
 			dbTmp.Dict = make(map[string]*core.ZObject, 100)
@@ -168,7 +168,7 @@ func LoadDatabases() (ret []*core.Database, ok bool) {
 			newDbFlag := false
 			// parse key_value_pairs into a database
 			for {
-				if len(content) < 8 {
+				if len(content) < 2 {
 					// no key_val_pairs
 					return ret, true
 				}
@@ -200,11 +200,6 @@ func LoadDatabases() (ret []*core.Database, ok bool) {
 				dbTmp.Dict[string(key)] = core.CreateObject(core.ObjectTypeString, val)
 
 				content = content[lenK+lenV+8:]
-				if len(content) < 10 {
-					// all contents read completely
-					break
-				}
-
 			}
 
 			// append database

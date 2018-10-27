@@ -23,6 +23,8 @@ type Server struct {
 // record and maintain a connection
 func (s *Server) CreateClient(conn net.Conn) (c *Client) {
 	c = new(Client)
+
+	// Choose 0 as default db
 	c.Db = s.Db[0]
 	c.Argv = make([]*core.ZObject, 5)
 	c.QueryBuf = ""
