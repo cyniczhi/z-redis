@@ -1,4 +1,4 @@
-package baseds
+package core
 
 type Node struct {
 	Prev       *Node

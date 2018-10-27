@@ -4,6 +4,7 @@ import (
 	"net"
 	"fmt"
 	"log"
+	"github.com/cyniczhi/z-redis/server/core"
 )
 
 type Server struct {
@@ -23,7 +24,7 @@ type Server struct {
 func (s *Server) CreateClient(conn net.Conn) (c *Client) {
 	c = new(Client)
 	c.Db = s.Db[0]
-	c.Argv = make([]*ZObject, 5)
+	c.Argv = make([]*core.ZObject, 5)
 	c.QueryBuf = ""
 	c.Conn = conn
 	return c

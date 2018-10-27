@@ -10,7 +10,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	"github.com/cyniczhi/z-redis/server/baseds"
+	"github.com/cyniczhi/z-redis/server/core"
 )
 
 const (
@@ -27,13 +27,13 @@ func CreateServer() (server *Server) {
 	server.Db = make([]*Database, server.DbNum)
 	for i := 0; i < server.DbNum; i++ {
 		server.Db[i] = new(Database)
-		server.Db[i].Dict = make(map[string]*ZObject, 100)
+		server.Db[i].Dict = make(map[string]*core.ZObject, 100)
 
 		lru := new(LRUDict)
 		lru.head = nil
 		lru.tail = nil
 		lru.max = maxCachedSize
-		lru.Dict = make(map[string]*baseds.Node, 100)
+		lru.Dict = make(map[string]*core.Node, 100)
 
 		server.Db[i].ExpireDict = lru
 	}

@@ -1,22 +1,18 @@
-package server
+package core
 
 import (
 	"log"
 	"fmt"
-	"github.com/cyniczhi/z-redis/server/baseds"
-)
-
-const (
-	maxKeys = 5
 )
 
 type LRUDict struct {
-	Dict baseds.ExpireDict
+	Dict ExpireDict
 	max  int32 // max keys in dict
-	head *baseds.Node // the Next key need to be expired
-	tail *baseds.Node // recently used key
+	head *Node // the Next key need to be expired
+	tail *Node // recently used key
 	len  int32
 }
+
 // delete Key
 func (d *LRUDict) Del(key string, db *Database) {
 	if n, ok := d.Dict[key]; ok {
@@ -39,12 +35,12 @@ func (d *LRUDict) Del(key string, db *Database) {
 		n = nil
 		d.len--
 	} else {
-		log.Println(fmt.Sprintf("Query key %s from baseds dict error", key))
+		log.Println(fmt.Sprintf("Query key %s from core dict error", key))
 	}
 }
 
 // Renew key: move node to tail of the link
-func (d *LRUDict) Renew(key string) (ok bool){
+func (d *LRUDict) Renew(key string) (ok bool) {
 	if n, ok := d.Dict[key]; ok {
 		if n == d.head {
 			d.tail.Next = n
@@ -72,7 +68,7 @@ func (d *LRUDict) Renew(key string) (ok bool){
 // Insert key: insert key, if num of keys > max num of the keys need to cache defined, expire the head.
 func (d *LRUDict) Insert(key string, db *Database) (ok bool) {
 	// TODO: err handling
-	node := new(baseds.Node)
+	node := new(Node)
 	node.Key = key
 
 	if d.len == 0 {
@@ -89,14 +85,14 @@ func (d *LRUDict) Insert(key string, db *Database) (ok bool) {
 	d.len++
 
 	if d.len > d.max {
-		// baseds the head node
+		// core the head node
 		d.Del(d.head.Key, db)
 	}
 	return true
 }
 
 // Check if key in expire dict
-func (d *LRUDict) Has(key string) bool{
+func (d *LRUDict) Has(key string) bool {
 	if _, ok := d.Dict[key]; ok {
 		return true
 	}

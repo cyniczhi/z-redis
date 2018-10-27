@@ -5,14 +5,15 @@ import (
 	"regexp"
 	"log"
 	"strings"
+	"github.com/cyniczhi/z-redis/server/core"
 )
 
 // one client is mapped to one TCP connection
 type Client struct {
 	Cmd      *Command
-	Argv     []*ZObject
+	Argv     []*core.ZObject
 	Argc     int
-	Db       *Database
+	Db       *core.Database
 	QueryBuf string
 	Buf      string
 	Conn     net.Conn
@@ -43,12 +44,12 @@ func (c *Client) handleQuery(){
 	//c.Argv = make([]*object.GodisObject, 5)
 	j := 0
 	for _, v := range argv {
-		c.Argv[j] = CreateObject(ObjectTypeString, v)
+		c.Argv[j] = core.CreateObject(core.ObjectTypeString, v)
 		j++
 	}
 }
 
-func (c *Client) addReply(o *ZObject) {
+func (c *Client) addReply(o *core.ZObject) {
 	c.Buf = o.Ptr.(string)
 }
 
