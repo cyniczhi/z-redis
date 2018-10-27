@@ -16,7 +16,7 @@ func CreateObject(t int, ptr interface{}) (o *ZObject) {
 	return
 }
 
-func (d *Database) get(key string) (*ZObject, *error) {
+func (d *Database) Get(key string) (*ZObject, *error) {
 
 	if o, ok := d.Dict[key]; ok && (o != nil) {
 		// update core dict
@@ -27,7 +27,7 @@ func (d *Database) get(key string) (*ZObject, *error) {
 	}
 }
 
-func (d *Database) set(key string, val *ZObject) (*ZObject, bool) {
+func (d *Database) Set(key string, val *ZObject) (*ZObject, bool) {
 	if val, ok := val.Ptr.(string); ok {
 		if d.ExpireDict.Has(key) {
 			// if exist key, renew core dict
@@ -44,6 +44,6 @@ func (d *Database) set(key string, val *ZObject) (*ZObject, bool) {
 	}
 }
 
-func (d *Database) del(key string) {
+func (d *Database) Del(key string) {
 	d.ExpireDict.Del(key, d)
 }

@@ -9,7 +9,7 @@ import (
 
 type Server struct {
 	Addr         string
-	Db           []*Database
+	Db           []*core.Database
 	DbNum        int
 	Start        int64
 	Port         int32
@@ -35,10 +35,10 @@ func (s *Server) ProcessCommand(c *Client) {
 	name, ok := v.(string)
 	if !ok {
 		log.Println("(error) ERR unknown command ", name)
-		c.addReply(CreateObject(ObjectTypeString, fmt.Sprintf("(error) ERR unknown command '%s'", name)))
+		c.addReply(core.CreateObject(core.ObjectTypeString, fmt.Sprintf("(error) ERR unknown command '%s'", name)))
 	}
 	if cmd, ok := s.Commands[name]; !ok {
-		c.addReply(CreateObject(ObjectTypeString, fmt.Sprintf("(error) ERR unknown command '%s'", name)))
+		c.addReply(core.CreateObject(core.ObjectTypeString, fmt.Sprintf("(error) ERR unknown command '%s'", name)))
 	} else {
 		c.Cmd = cmd
 		call(c)

@@ -17,7 +17,7 @@ db_version: 0  							  1 byte
 
 **************************** database ******************************
 | SELECTDB | db_number | key_value_pairs |
-SELECTDB: 1  							  1 byte
+SELECTDB:    							  8 byte
 db_number: number  						  1 byte
 
 **************************** key value pair ******************************
@@ -43,8 +43,6 @@ var dbFlag = [8]byte{'S', 'E', 'L', 'E', 'C', 'T', 'D', 'B'}
 var zFlag = [6]byte{'Z', 'R', 'E', 'D', 'I', 'S'}
 
 type zDbFile struct {
-	startFlag [6]byte // "ZREDIS"
-	dbVersion byte    // 0
 	databases []*zDatabase
 }
 
@@ -81,12 +79,19 @@ func (z *zDbFile) AddDatabase(dbNum int, hMap map[string]*core.ZObject) {
 	z.databases = append(z.databases, db)
 }
 
-// persistent a zdb file
-func (z *zDbFile) Persistence() {
+// persistent Databases
+func Persistence(databases []*core.Database) {
+	zdb := new(zDbFile)
+	zdb.databases = make([]*zDatabase, 0)
+
+	// buffer to be persisted
 	result := make([]byte, 0)
-	result = append(result, z.startFlag[:]...)
-	result = append(result, z.dbVersion)
-	for _, db := range z.databases {
+	result = append(result, zFlag[:]...)
+	result = append(result, core.DbVersion)
+	for _, db := range databases {
+		zdb.AddDatabase(int(db.ID), db.Dict)
+	}
+	for _, db := range zdb.databases{
 		result = append(result, db.id)
 		result = append(result, db.buff()...)
 	}
@@ -95,7 +100,7 @@ func (z *zDbFile) Persistence() {
 	check(err)
 }
 
-func (z *zDbFile) LoadDatabases() []*core.Database {
+func LoadDatabases() (ret []*core.Database, ok bool){
 	if fileObj, err := os.Open(core.DefaultZdbFilePath); err == nil {
 		defer fileObj.Close()
 
@@ -105,7 +110,7 @@ func (z *zDbFile) LoadDatabases() []*core.Database {
 		buf := make([]byte, 6)
 		if _, err := reader.Read(buf); err == nil {
 			for i := 0; i < 6; i++ {
-				if buf[i] != z.startFlag[i] {
+				if buf[i] != zFlag[i] {
 					log.Printf("Database file <%s> illegal", err)
 				}
 			}
@@ -133,7 +138,15 @@ func (z *zDbFile) LoadDatabases() []*core.Database {
 
 		// TODO: more strict boundary condition check, not enough now
 		for ; len(content) > 0; {
+			// init a blank database
 			dbTmp := new(core.Database)
+			dbTmp.Dict = make(map[string]*core.ZObject, 100)
+			lru := new(core.LRUDict)
+			lru.Head = nil
+			lru.Tail = nil
+			lru.Max = core.MaxCachedSize
+			lru.Dict = make(map[string]*core.Node, 100)
+			dbTmp.ExpireDict = lru
 
 			// parse key_value_pairs into a database
 			for {
@@ -150,6 +163,11 @@ func (z *zDbFile) LoadDatabases() []*core.Database {
 
 				vType := content[0]
 				content = content[1:]
+
+				if len(content) < 8 {
+					// no key_val_pairs
+					return ret, true
+				}
 				if vType != core.ObjectTypeString {
 					panic(fmt.Sprintf("Value type <%s> not supported yet", vType))
 				}
@@ -158,18 +176,21 @@ func (z *zDbFile) LoadDatabases() []*core.Database {
 				key := content[4:lenK+4]
 				lenV := core.Byte2Int(content[lenK+4:lenK+8])
 				val := content[lenK+8:lenK+8+lenV]
-				dbTmp[string(key)] = core.CreateObject(core.ObjectTypeString, val)
+				dbTmp.Dict[string(key)] = core.CreateObject(core.ObjectTypeString, val)
 
 				content = content[lenK+lenV+8:]
-				if len(content) == 0 {
+				if len(content) < 10 {
 					// all contents read completely
 					break
 				}
 			}
+
+			// append database
+			ret = append(ret, dbTmp)
 		}
-		return ret
+		return ret, true
 	}
-	return nil
+	return nil, false
 
 }
 
@@ -208,11 +229,8 @@ func TestWrite() {
 	db["eeee"] = core.CreateObject(core.ObjectTypeString, "aaaa")
 
 	zdb := new(zDbFile)
-	zdb.startFlag = [6]byte{'Z', 'R', 'E', 'D', 'I', 'S'}
-	zdb.dbVersion = 2
 	zdb.databases = make([]*zDatabase, 0)
 	zdb.AddDatabase(1, db)
-	zdb.Persistence()
 }
 
 func check(err error) {

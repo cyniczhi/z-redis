@@ -9,6 +9,7 @@ const (
 	ObjectTypeHash   = 5
 )
 
+var MaxCachedSize int32 = 3
 var DefaultZdbFilePath = "default.zdb"
 var DbVersion byte = 0
 
