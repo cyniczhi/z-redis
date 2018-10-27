@@ -3,6 +3,8 @@ This file defines the structure of a zdb file
 *********** Note ***********
 1. Only string type value implemented now
 2. No compress for key_value_pairs
+
+3. Multiple databases supported
 ****************************
 
 **************************** ZDB file ******************************
@@ -29,13 +31,16 @@ package persistence
 
 import (
 	"io/ioutil"
+	"log"
 	"github.com/cyniczhi/z-redis/server/core"
+	"os"
+	"bufio"
+	"fmt"
+	"io"
 )
 
-const (
-	dbVersion       byte = 0
-	defaultFilePath      = "test.zdb"
-)
+var dbFlag = [8]byte{'S', 'E', 'L', 'E', 'C', 'T', 'D', 'B'}
+var zFlag = [6]byte{'Z', 'R', 'E', 'D', 'I', 'S'}
 
 type zDbFile struct {
 	startFlag [6]byte // "ZREDIS"
@@ -57,6 +62,7 @@ type zKvPair struct {
 // return the buffer of one database
 func (db *zDatabase) buff() []byte {
 	ret := make([]byte, 0)
+	ret = append(ret, dbFlag[:]...)
 	for _, p := range db.content {
 		ret = append(ret, p.valType)
 		ret = append(ret, p.key...)
@@ -81,25 +87,119 @@ func (z *zDbFile) Persistence() {
 	result = append(result, z.startFlag[:]...)
 	result = append(result, z.dbVersion)
 	for _, db := range z.databases {
-		result = append(result, 1)
 		result = append(result, db.id)
 		result = append(result, db.buff()...)
 	}
 
-	err := ioutil.WriteFile(defaultFilePath, append(result, dbVersion), 0644)
+	err := ioutil.WriteFile(core.DefaultZdbFilePath, append(result, core.DbVersion), 0644)
 	check(err)
+}
+
+func (z *zDbFile) LoadDatabases() []*core.Database {
+	if fileObj, err := os.Open(core.DefaultZdbFilePath); err == nil {
+		defer fileObj.Close()
+
+		reader := bufio.NewReader(fileObj)
+
+		// TODO: validation the db file
+		buf := make([]byte, 6)
+		if _, err := reader.Read(buf); err == nil {
+			for i := 0; i < 6; i++ {
+				if buf[i] != z.startFlag[i] {
+					log.Printf("Database file <%s> illegal", err)
+				}
+			}
+		} else {
+			log.Printf("Database file <%s> illegal", err)
+		}
+
+		// read databases into content
+		content := make([]byte, 0)
+		buf = make([]byte, 1024)
+		for {
+			if n, err := reader.Read(buf); err == nil {
+				content = append(content, buf...)
+			} else if err == io.EOF {
+				content = append(content, buf[0:n]...)
+				break
+			} else {
+				log.Printf("Load database file <%s> error ", err)
+				panic(err)
+			}
+		}
+
+		// parse content into databases
+		ret := make([]*core.Database, 0)
+
+		// TODO: more strict boundary condition check, not enough now
+		for ; len(content) > 0; {
+			dbTmp := new(core.Database)
+
+			// parse key_value_pairs into a database
+			for {
+				// check db id
+				for i, c := range content[0:8] {
+					if c != dbFlag[i] {
+						log.Printf("Database file <%s> illegal", err)
+						panic(fmt.Sprintf("Database file <%s> illegal", err))
+					}
+				}
+				dbTmp.ID = int32(content[8])
+				content = content[9:]
+
+
+				vType := content[0]
+				content = content[1:]
+				if vType != core.ObjectTypeString {
+					panic(fmt.Sprintf("Value type <%s> not supported yet", vType))
+				}
+
+				lenK := core.Byte2Int(content[0:4])
+				key := content[4:lenK+4]
+				lenV := core.Byte2Int(content[lenK+4:lenK+8])
+				val := content[lenK+8:lenK+8+lenV]
+				dbTmp[string(key)] = core.CreateObject(core.ObjectTypeString, val)
+
+				content = content[lenK+lenV+8:]
+				if len(content) == 0 {
+					// all contents read completely
+					break
+				}
+			}
+		}
+		return ret
+	}
+	return nil
+
 }
 
 // add a key_value pair to a zDatabase
 func (db *zDatabase) add(key string, val string) {
 	pair := new(zKvPair)
-	pair.valType = 0
+	pair.valType = core.ObjectTypeString
 	pair.key = append(core.Int2Byte(uint32(len(key))), key...)
 	pair.val = append(core.Int2Byte(uint32(len(val))), val...)
 	db.content = append(db.content, pair)
 }
 
-func Test() {
+func TestRead() {
+	if fileObj, err := os.Open("test.zdb"); err == nil {
+		defer fileObj.Close()
+		reader := bufio.NewReader(fileObj)
+
+		buf := make([]byte, 1)
+		for {
+			if _, err := reader.Read(buf); err == nil {
+				fmt.Printf("%d: %s\n", buf, buf)
+			} else {
+				fmt.Print(err)
+				return
+			}
+		}
+	}
+}
+
+func TestWrite() {
 	db := make(map[string]*core.ZObject)
 	db["aaaa"] = core.CreateObject(core.ObjectTypeString, "aaaa")
 	db["bbbb"] = core.CreateObject(core.ObjectTypeString, "aaaa")

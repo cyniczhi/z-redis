@@ -11,5 +11,6 @@ func main()  {
 	//fmt.Println("Welcome to z-redis server!")
 	//server := server.CreateServer()
 	//server.Run()
-	persistence.Test()
+	persistence.TestWrite()
+	//persistence.TestRead()
 }

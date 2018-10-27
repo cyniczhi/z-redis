@@ -9,6 +9,9 @@ const (
 	ObjectTypeHash   = 5
 )
 
+var DefaultZdbFilePath = "default.zdb"
+var DbVersion byte = 0
+
 type ZObject struct {
 	ObjectType int
 	Ptr        interface{}
