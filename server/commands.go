@@ -21,7 +21,7 @@ func SetCommand(c *Client) {
 		return
 	}
 	if stringKey, ok1 := objKey.Ptr.(string); ok1 {
-		if o, ok2 := c.Db.set(stringKey, objVal); ok2 == nil && o != nil {
+		if o, ok2 := c.Db.set(stringKey, objVal); ok2 && o != nil {
 			c.addReply(o)
 		} else {
 			c.addReply(CreateObject(ObjectTypeString, "(error) ERR wrong <value> of arguments for 'set' command"))
@@ -46,6 +46,6 @@ func DelCommand(c *Client) {
 		c.Db.del(key)
 		c.addReply(CreateObject(ObjectTypeString, fmt.Sprintf("Key %s deleted", key)))
 	} else {
-		c.addReply(CreateObject(ObjectTypeString, fmt.Sprintf("(error) ERR del %s error", key)))
+		c.addReply(CreateObject(ObjectTypeString, fmt.Sprintf("(error) ERR Del %s error", key)))
 	}
 }

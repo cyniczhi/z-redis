@@ -1,7 +1,6 @@
 package server
 
 import (
-	"github.com/cyniczhi/z-redis/server/expire"
 )
 
 // TODO: diff type error handling
@@ -9,7 +8,7 @@ import (
 
 type Database struct {
 	Dict       dict
-	ExpireDict expire.LRUDict
+	ExpireDict *LRUDict
 	ID         int32
 }
 
@@ -33,23 +32,31 @@ func CreateObject(t int, ptr interface{}) (o *ZObject) {
 func (d *Database)get(key string) (*ZObject, *error) {
 
 	if o, ok := d.Dict[key]; ok && (o != nil) {
-		// update expire dict
+		// update baseds dict
+		d.ExpireDict.Renew(key)
 		return o, nil
 	} else {
 		return nil, new(error)
 	}
 }
 
-func (d *Database)set(key string, val *ZObject) (*ZObject, *error) {
+func (d *Database)set(key string, val *ZObject) (*ZObject, bool) {
 	if val, ok := val.Ptr.(string); ok {
+		if d.ExpireDict.Has(key) {
+			// if exist key, renew baseds dict
+			d.ExpireDict.Renew(key)
+		} else {
+			// if new key, insert into baseds dict
+			d.ExpireDict.Insert(key, d)
+		}
 		valObj := CreateObject(ObjectTypeString, val)
 		d.Dict[key] = valObj
-		return valObj, nil
+		return valObj, true
 	} else {
-		return nil, new(error)
+		return nil, false
 	}
 }
 
-func (d* Database)del(key string) {
-	delete(d.Dict, key)
+func (d* Database) del(key string) {
+	d.ExpireDict.Del(key, d)
 }
