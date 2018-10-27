@@ -94,8 +94,8 @@ func (z *zDbFile) Persistence() {
 func (db *zDatabase) add(key string, val string) {
 	pair := new(zKvPair)
 	pair.valType = 0
-	pair.key = []byte(key)
-	pair.val = []byte(val)
+	pair.key = append(core.Int2Byte(uint32(len(key))), key...)
+	pair.val = append(core.Int2Byte(uint32(len(val))), val...)
 	db.content = append(db.content, pair)
 }
 
