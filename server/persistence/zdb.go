@@ -173,7 +173,6 @@ func LoadDatabases() (ret []*core.Database, ok bool) {
 					return ret, true
 				}
 				for i, c := range content[0:8] {
-					fmt.Println(c)
 					if c != dbFlag[i] {
 						break
 					} else if i == 7 {
@@ -220,36 +219,6 @@ func (db *zDatabase) add(key string, val string) {
 	pair.key = append(core.Int2Byte(uint32(len(key))), key...)
 	pair.val = append(core.Int2Byte(uint32(len(val))), val...)
 	db.content = append(db.content, pair)
-}
-
-func TestRead() {
-	if fileObj, err := os.Open("test.zdb"); err == nil {
-		defer fileObj.Close()
-		reader := bufio.NewReader(fileObj)
-
-		buf := make([]byte, 1)
-		for {
-			if _, err := reader.Read(buf); err == nil {
-				fmt.Printf("%d: %s\n", buf, buf)
-			} else {
-				fmt.Print(err)
-				return
-			}
-		}
-	}
-}
-
-func TestWrite() {
-	db := make(map[string]*core.ZObject)
-	db["aaaa"] = core.CreateObject(core.ObjectTypeString, "aaaa")
-	db["bbbb"] = core.CreateObject(core.ObjectTypeString, "aaaa")
-	db["cccc"] = core.CreateObject(core.ObjectTypeString, "aaaa")
-	db["dddd"] = core.CreateObject(core.ObjectTypeString, "aaaa")
-	db["eeee"] = core.CreateObject(core.ObjectTypeString, "aaaa")
-
-	zdb := new(zDbFile)
-	zdb.databases = make([]*zDatabase, 0)
-	zdb.AddDatabase(1, db)
 }
 
 func check(err error) {
