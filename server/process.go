@@ -28,20 +28,17 @@ func CreateServer() (server *Server) {
 		server.DbNum = core.DefaultDbNumber
 		server.Db = make([]*core.Database, core.DefaultDbNumber)
 		for i := 0; i < server.DbNum; i++ {
+			//init LRU& cache dict
 			server.Db[i] = new(core.Database)
 			server.Db[i].Dict = make(map[string]*core.ZObject, 100)
 			server.Db[i].ID = int32(i)
+			lru := new(core.LRUDict)
+			lru.Head = nil
+			lru.Tail = nil
+			lru.Max = core.MaxCachedSize
+			lru.Dict = make(map[string]*core.Node, 100)
+			server.Db[i].ExpireDict = lru
 		}
-	}
-
-	//init LRU
-	for i := 0; i < server.DbNum; i++ {
-		lru := new(core.LRUDict)
-		lru.Head = nil
-		lru.Tail = nil
-		lru.Max = core.MaxCachedSize
-		lru.Dict = make(map[string]*core.Node, 100)
-		//server.Db[i].ExpireDict = lru
 	}
 
 	server.Start = time.Now().UnixNano() / 1000000
