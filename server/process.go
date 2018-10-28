@@ -17,7 +17,7 @@ import (
 func CreateServer() (server *Server) {
 	server = new(Server)
 
-	server.Addr = "0.0.0.0:9999"
+	server.Addr = core.DefaultAddr
 	server.Pid = os.Getpid()
 
 	// allocate mem for databases

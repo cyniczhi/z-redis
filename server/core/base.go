@@ -12,8 +12,9 @@ const (
 var BuffSize = 10
 var DbVersion byte = 0
 var DefaultDbNumber = 8
-var MaxCachedSize int32 = 3
+var MaxCachedSize int32 = 5
 var DefaultZdbFilePath = "default.zdb"
+var DefaultAddr = "0.0.0.0:9999"
 
 type ZObject struct {
 	ObjectType int
