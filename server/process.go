@@ -54,7 +54,7 @@ func CreateServer() (server *Server) {
 	server.Commands = map[string]*Command{
 		"get": getCommand,
 		"set": setCommand,
-		"Del": delCommand,
+		"del": delCommand,
 	}
 	return server
 }
