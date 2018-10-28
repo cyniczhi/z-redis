@@ -13,7 +13,7 @@ func CreateObject(t int, ptr interface{}) (o *ZObject) {
 	o = new(ZObject)
 	o.ObjectType = t
 	o.Ptr = ptr
-	return
+	return o
 }
 
 func (d *Database) Get(key string) (*ZObject, *error) {

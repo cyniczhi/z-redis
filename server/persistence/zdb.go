@@ -197,7 +197,7 @@ func LoadDatabases() (ret []*core.Database, ok bool) {
 				key := content[4:lenK+4]
 				lenV := core.Byte2Int(content[lenK+4:lenK+8])
 				val := content[lenK+8:lenK+8+lenV]
-				dbTmp.Dict[string(key)] = core.CreateObject(core.ObjectTypeString, val)
+				dbTmp.Set(string(key), core.CreateObject(core.ObjectTypeString, string(val)))
 
 				content = content[lenK+lenV+8:]
 			}
