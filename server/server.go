@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"github.com/cyniczhi/z-redis/server/core"
+	"strings"
 )
 
 type Server struct {
@@ -39,7 +40,7 @@ func (s *Server) ProcessCommand(c *Client) {
 		log.Println("(error) ERR unknown command ", name)
 		c.addReply(core.CreateObject(core.ObjectTypeString, fmt.Sprintf("(error) ERR unknown command '%s'", name)))
 	}
-	if cmd, ok := s.Commands[name]; !ok {
+	if cmd, ok := s.Commands[strings.ToLower(name)]; !ok {
 		c.addReply(core.CreateObject(core.ObjectTypeString, fmt.Sprintf("(error) ERR unknown command '%s'", name)))
 	} else {
 		c.Cmd = cmd
