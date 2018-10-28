@@ -1,8 +1,10 @@
 # z-redis
 
 ## Intro
+###
 https://gist.github.com/tevino/f526b18117d83a0fb7b4d1857b14051a
-基于Golang从头编写的一个类似Redis的Demo，目前只支持string类型的value。
+###
+基于Golang从头编写的一个类似单机Redis的Demo，目前只支持string类型的value。
 ## Preparation
 ### get/set/del
 基本思路是使用Go自带的数据类型Map作为底层存储的数据结构。
@@ -20,6 +22,7 @@ https://gist.github.com/tevino/f526b18117d83a0fb7b4d1857b14051a
 插入：新增key的时候，加入到链表尾部。检查是否超过最大链表长度，如果超过就删除表头。
 更新：每当key被使用（set/get），把key对应的node移动到链表尾部。
 删除：删除key的时候，把key对应的node删除，再删除expire里面的key。
+#####
 **LRUDict:**
 - Dict map[string]*Node
   - 缓存key的字典
@@ -32,9 +35,8 @@ https://gist.github.com/tevino/f526b18117d83a0fb7b4d1857b14051a
 - Len  int32
   - 链表长度
 
-
-链表:
-双向无环链表，包含头指针和尾指针。
+链表: 双向无环链表，包含头指针和尾指针。
+#####
 **Node**：
 - Prev       *Node
 - Next       *Node
@@ -70,9 +72,11 @@ SELECTDB 是一个1字节的常量，表示后面是一个db_number。
   | TYPE | KEY | VALUE | or  | EXPIRETIME_MS | ms | TYPE | KEY | VALUE |
 - Value的编码
   当前z-redis的实现仅支持string类型的value，不考虑压缩，因此没有编码，仅针对value作变长地完整保存。
-
+#####
 经过参考和分析，得到ZDB文件结构如下：
+#####
 **ZDB**
+#####
 - ZDB文件
 	- | ZREDIS | db_version | databases | EOF |
 		- ZREDIS: 'Z', 'R', 'E', 'D', 'I', 'S'; 5byte
@@ -122,6 +126,10 @@ SELECTDB 是一个1字节的常量，表示后面是一个db_number。
 ### 其它
 #### 特性
 - Redis统一协议。
+- 其它类型Value的支持
+	- List
+	- Set
+	- ...
 - 更灵活的持久化策略。
 - 更高效的IO模型 （网络，持久化...）
 - 更少的内存开销 （支持shrink的dict）
