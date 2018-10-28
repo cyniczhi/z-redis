@@ -112,10 +112,12 @@ func LoadDatabases() (ret []*core.Database, ok bool) {
 			for i := 0; i < 6; i++ {
 				if buf[i] != zFlag[i] {
 					log.Printf("Database file <%s> illegal", err)
+					return nil, false
 				}
 			}
 		} else {
 			log.Printf("Database file <%s> illegal", err)
+			return nil, false
 		}
 
 		// read databases into content
@@ -146,6 +148,18 @@ func LoadDatabases() (ret []*core.Database, ok bool) {
 
 		// TODO: more strict boundary condition check, not enough now
 		for {
+			// validation
+			if len(content) < 8 {
+				log.Printf("Database file <%s> illegal, load err: %s", core.DefaultZdbFilePath, err)
+				return nil, false
+			}
+			for i, c := range content[0:8] {
+				if c != dbFlag[i] {
+					log.Printf("Database file <%s> illegal, load err: %s", core.DefaultZdbFilePath, err)
+					return nil, false
+				}
+			}
+
 			// init a blank database
 			dbTmp := new(core.Database)
 			dbTmp.Dict = make(map[string]*core.ZObject, 100)
@@ -155,13 +169,6 @@ func LoadDatabases() (ret []*core.Database, ok bool) {
 			lru.Max = core.MaxCachedSize
 			lru.Dict = make(map[string]*core.Node, 100)
 			dbTmp.ExpireDict = lru
-
-			for i, c := range content[0:8] {
-				if c != dbFlag[i] {
-					log.Printf("Database file <%s> illegal, load err: %s", core.DefaultZdbFilePath, err)
-					panic(fmt.Sprintf("Database file <%s> illegal", err))
-				}
-			}
 
 			dbTmp.ID = int32(content[8])
 			content = content[9:]
