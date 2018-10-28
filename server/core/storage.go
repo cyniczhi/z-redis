@@ -1,38 +1,25 @@
-package server
-
-import (
-)
+package core
 
 // TODO: diff type error handling
 
-
 type Database struct {
-	Dict       dict
+	Dict       BaseDict
 	ExpireDict *LRUDict
 	ID         int32
 }
 
-type dict map[string]*ZObject
-
-type ZObject struct {
-	ObjectType int
-	Ptr        interface{}
-}
-
-// TODO: really support different type obj
-const ObjectTypeString = 1
 
 func CreateObject(t int, ptr interface{}) (o *ZObject) {
 	o = new(ZObject)
 	o.ObjectType = t
 	o.Ptr = ptr
-	return
+	return o
 }
 
-func (d *Database)get(key string) (*ZObject, *error) {
+func (d *Database) Get(key string) (*ZObject, *error) {
 
 	if o, ok := d.Dict[key]; ok && (o != nil) {
-		// update baseds dict
+		// update core dict
 		d.ExpireDict.Renew(key)
 		return o, nil
 	} else {
@@ -40,13 +27,13 @@ func (d *Database)get(key string) (*ZObject, *error) {
 	}
 }
 
-func (d *Database)set(key string, val *ZObject) (*ZObject, bool) {
+func (d *Database) Set(key string, val *ZObject) (*ZObject, bool) {
 	if val, ok := val.Ptr.(string); ok {
 		if d.ExpireDict.Has(key) {
-			// if exist key, renew baseds dict
+			// if exist key, renew core dict
 			d.ExpireDict.Renew(key)
 		} else {
-			// if new key, insert into baseds dict
+			// if new key, insert into core dict
 			d.ExpireDict.Insert(key, d)
 		}
 		valObj := CreateObject(ObjectTypeString, val)
@@ -57,6 +44,6 @@ func (d *Database)set(key string, val *ZObject) (*ZObject, bool) {
 	}
 }
 
-func (d* Database) del(key string) {
+func (d *Database) Del(key string) {
 	d.ExpireDict.Del(key, d)
 }

@@ -10,34 +10,39 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	"github.com/cyniczhi/z-redis/server/baseds"
+	"github.com/cyniczhi/z-redis/server/core"
+	"github.com/cyniczhi/z-redis/server/persistence"
 )
 
-const (
-	maxCachedSize = 3
-)
 func CreateServer() (server *Server) {
 	server = new(Server)
 
 	server.Addr = "0.0.0.0:9999"
 	server.Pid = os.Getpid()
-	server.DbNum = 8
 
 	// allocate mem for databases
-	server.Db = make([]*Database, server.DbNum)
-	for i := 0; i < server.DbNum; i++ {
-		server.Db[i] = new(Database)
-		server.Db[i].Dict = make(map[string]*ZObject, 100)
-
-		lru := new(LRUDict)
-		lru.head = nil
-		lru.tail = nil
-		lru.max = maxCachedSize
-		lru.Dict = make(map[string]*baseds.Node, 100)
-
-		server.Db[i].ExpireDict = lru
+	if dbs, ok := persistence.LoadDatabases(); ok {
+		server.Db = dbs
+		server.DbNum = len(dbs)
+	} else {
+		server.DbNum = core.DefaultDbNumber
+		server.Db = make([]*core.Database, core.DefaultDbNumber)
+		for i := 0; i < server.DbNum; i++ {
+			server.Db[i] = new(core.Database)
+			server.Db[i].Dict = make(map[string]*core.ZObject, 100)
+			server.Db[i].ID = int32(i)
+		}
 	}
-	//log.Println("init db begin-->", server.Db)
+
+	//init LRU
+	for i := 0; i < server.DbNum; i++ {
+		lru := new(core.LRUDict)
+		lru.Head = nil
+		lru.Tail = nil
+		lru.Max = core.MaxCachedSize
+		lru.Dict = make(map[string]*core.Node, 100)
+		//server.Db[i].ExpireDict = lru
+	}
 
 	server.Start = time.Now().UnixNano() / 1000000
 
@@ -59,7 +64,7 @@ func (s *Server) Run() {
 	// handle os signals
 	c := make(chan os.Signal)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
-	go sigHandler(c)
+	go sigHandler(c, s)
 
 	// network handler
 	socket, err := net.Listen("tcp", s.Addr)
@@ -78,21 +83,23 @@ func (s *Server) Run() {
 	}
 }
 
-
-func sigHandler(c chan os.Signal) {
+func sigHandler(c chan os.Signal, server *Server) {
 	for s := range c {
 		switch s {
 		case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-			exitHandler()
+			exitHandler(server)
 		default:
 			log.Println("unexpected signal ", s)
 		}
 	}
 }
 
-// TODO: serialize mem to disk
-func exitHandler() {
+// TODO: persistence
+func exitHandler(s *Server) {
 	log.Println("exiting z-redis...")
+	log.Println("Persisting databases...")
+	persistence.Persistence(s.Db)
+	log.Println("Databases saved")
 	log.Println("bye ")
 	os.Exit(0)
 }
